@@ -1,9 +1,3 @@
-# Author: suenerve
-# I demand my credits to the code wherever it's used.
-# This code is licensed under a NON-commercial use.
-# Open issues at: https://github.com/suenerve/DSV/issues/new
-# NOTE : Spamming Discord's API is against TOS, You may get your account suspended and I am not responsible. For a further caution, use an alt's token and a higher delay.
-
 import random
 import string
 import requests
@@ -85,4 +79,7 @@ def sys_c_t():
             print("[ERROR] No Discord token configured.")
             sys.exit(1)
 
+
+# =========================
+# CONFIG SETUP
     main()
