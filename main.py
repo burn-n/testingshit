@@ -17,19 +17,19 @@ __github__ = "https://github.com/suenerve"
 # =========================
 CONFIG = {
     "TOKEN": "PUT_YOUR_DISCORD_TOKEN_HERE",
-    "MULTI_TOKEN": False,
+    "MULTI_TOKEN": True,
     "TOKENS": [
-        # "token1",
-        # "token2"
+        "NjY4Mzk4OTMyNDUxMjYyNDk1.GbJkyR.ai5jaYNMXaXcqDkHP-eQeA7chfQWF3cqsF4WDc",
+        "NzI0OTc5MDI2ODkyMDMwMDM0.GTQLnN.X-vC3GsnbdaJ3LQHMI0vrOh3cdOZhrD-MuUixE"
     ],
-    "WEBHOOK_URL": "",
-    "DEFAULT_DELAY": 1,
+    "WEBHOOK_URL": "https://discord.com/api/webhooks/1508590349713408231/CIljNz9hoywwrkH9ZJ7cjWVwUi5gogPNdGlWXzYucncqQb13qZZpB6D-Vi6wCSaeZ4WT",
+    "DEFAULT_DELAY": 4,
     "STRING": True,
     "DIGITS": True,
     "PUNCTUATION": False,
     "MODE": 1,
     "USERNAME_LENGTH": 4,
-    "GENERATE_COUNT": 25,
+    "GENERATE_COUNT": 15,
     "USERNAME_LIST": [
         "testuser",
         "example123"
