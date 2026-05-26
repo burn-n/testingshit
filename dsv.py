@@ -1,85 +1,89 @@
 import random
-import string
-import requests
-import time
-import json
-import datetime
-import sys
-from colorama import Fore, init
 
-init(autoreset=True)
+    time.sleep(CONFIG["DEFAULT_DELAY"])
 
-__version__ = "GitHub Actions DSV 2.0"
-__github__ = "https://github.com/suenerve"
+    print(f"[CHECKING] {username}")
 
-# =========================
-# CONFIG
-# =========================
-CONFIG = {
-    "TOKEN": "PUT_YOUR_DISCORD_TOKEN_HERE",
-    "MULTI_TOKEN": False,
-    "TOKENS": [
-        # "token1",
-        # "token2"
-    ],
-    "WEBHOOK_URL": "",
-    "DEFAULT_DELAY": 1,
-    "STRING": True,
-    "DIGITS": True,
-    "PUNCTUATION": False,
-    "MODE": 1,
-    "USERNAME_LENGTH": 4,
-    "GENERATE_COUNT": 25,
-    "USERNAME_LIST": [
-        "testuser",
-        "example123"
-    ]
-}
+    try:
+        endpoint = requests.post(URL, headers=s_sys_h(), json=body)
+        json_endpoint = endpoint.json()
 
-# =========================
-# GLOBALS
-# =========================
-available_usernames = []
-integ_0 = 0
-sample_0 = "_."
+        print(f"[DEBUG] Status Code: {endpoint.status_code}")
+        print(f"[DEBUG] Response: {json.dumps(json_endpoint)}")
 
-sys_url = "https://discord.com/api/v9/users/@me"
-URL = "https://discord.com/api/v9/users/@me/pomelo-attempt"
+        if endpoint.status_code == 429:
+            if CONFIG["MULTI_TOKEN"] and len(avail_tokens()) > 1:
+                integ_0 = (integ_0 + 1) % len(avail_tokens())
+                print(f"[RATE LIMIT] Switched token index to {integ_0}")
+                return
+            else:
+                sleep_time = json_endpoint.get("retry_after", 5)
+                print(f"[RATE LIMIT] Sleeping for {sleep_time} seconds")
+                time.sleep(sleep_time)
+                return
 
-# =========================
-# TOKEN HANDLING
-# =========================
-def avail_tokens():
-    return CONFIG["TOKENS"]
+        if json_endpoint.get("taken") is False:
+            print(f"[AVAILABLE] {username}")
+            available_usernames.append(username)
+            save(username)
+            ch_send_webhook(username)
 
+        elif json_endpoint.get("taken") is True:
+            print(f"[TAKEN] {username}")
 
-def s_sys_h():
-    global integ_0
+        else:
+            print(f"[ERROR] Unexpected response: {json.dumps(json_endpoint)}")
 
-    if CONFIG["MULTI_TOKEN"]:
-        tokens = avail_tokens()
-        token = tokens[integ_0]
-    else:
-        token = CONFIG["TOKEN"]
-
-    return {
-        "Content-Type": "application/json",
-        "Origin": "https://discord.com/",
-        "Authorization": token
-    }
-
-
-def sys_c_t():
-    if CONFIG["MULTI_TOKEN"]:
-        if len(avail_tokens()) == 0:
-            print("[ERROR] MULTI_TOKEN is enabled but no tokens were supplied.")
-            sys.exit(1)
-    else:
-        if CONFIG["TOKEN"] == "PUT_YOUR_DISCORD_TOKEN_HERE" or not CONFIG["TOKEN"]:
-            print("[ERROR] No Discord token configured.")
-            sys.exit(1)
+    except Exception as e:
+        print(f"[EXCEPTION] {e}")
 
 
 # =========================
-# CONFIG SETUP
+# SAVE RESULTS
+# =========================
+def save(content):
+    with open("available_usernames.txt", "a", encoding="utf-8") as file:
+        file.write(f"{content}\n")
+
+    print(f"[SAVED] {content} -> available_usernames.txt")
+
+
+# =========================
+# WEBHOOK
+# =========================
+def ch_send_webhook(val0: str):
+    if not webhook_0:
+        return
+
+    webhook = Discord(url=CONFIG["WEBHOOK_URL"])
+
+    try:
+        webhook.post(
+            username="DSV",
+            embeds=[
+                {
+                    "title": f"Username: `{val0}` is available.",
+                    "timestamp": str(datetime.datetime.utcnow()),
+                    "color": 16768000
+                }
+            ]
+        )
+
+        print(f"[WEBHOOK] Sent notification for {val0}")
+
+    except Exception as e:
+        print(f"[WEBHOOK ERROR] {e}")
+
+
+# =========================
+# GENERATION
+# =========================
+def opt1func(v1, v2):
+    print(f"[INFO] Generating {v1} usernames with length {v2}")
+
+    for i in range(v1):
+        name = get_names(v2)
+        print(f"[GENERATED] {name}")
+        validate_names(1, name)
+
     main()
