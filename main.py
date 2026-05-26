@@ -19,8 +19,6 @@ CONFIG = {
     "TOKEN": "PUT_YOUR_DISCORD_TOKEN_HERE",
     "MULTI_TOKEN": True,
     "TOKENS": [
-        "NjY4Mzk4OTMyNDUxMjYyNDk1.GbJkyR.ai5jaYNMXaXcqDkHP-eQeA7chfQWF3cqsF4WDc",
-        "NzI0OTc5MDI2ODkyMDMwMDM0.GTQLnN.X-vC3GsnbdaJ3LQHMI0vrOh3cdOZhrD-MuUixE"
     ],
     "WEBHOOK_URL": "https://discord.com/api/webhooks/1508590349713408231/CIljNz9hoywwrkH9ZJ7cjWVwUi5gogPNdGlWXzYucncqQb13qZZpB6D-Vi6wCSaeZ4WT",
     "DEFAULT_DELAY": 4,
