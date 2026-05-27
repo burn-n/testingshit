@@ -1,303 +1,182 @@
-import random
-import string
 import requests
+import threading
+import queue
+import itertools
 import time
-import json
-import datetime
+import string
 import sys
-from colorama import Fore, init
 
-init(autoreset=True)
+API = "https://discord.com/api/v9/unique-username/username-attempt-unauthed"
+WEBHOOK = "https://discord.com/api/webhooks/1508590349713408231/CIljNz9hoywwrkH9ZJ7cjWVwUi5gogPNdGlWXzYucncqQb13qZZpB6D-Vi6wCSaeZ4WT"
 
-__version__ = "GitHub Actions DSV 2.0"
-__github__ = "https://github.com/suenerve"
+THREADS = 1
+COOLDOWN = 10
+MAX_RETRIES = 5
 
-# =========================
-# CONFIG
-# =========================
-CONFIG = {
-    "TOKEN": "PUT_YOUR_DISCORD_TOKEN_HERE",
-    "MULTI_TOKEN": True,
-    "TOKENS": [
-    ],
-    "WEBHOOK_URL": "https://discord.com/api/webhooks/1508590349713408231/CIljNz9hoywwrkH9ZJ7cjWVwUi5gogPNdGlWXzYucncqQb13qZZpB6D-Vi6wCSaeZ4WT",
-    "DEFAULT_DELAY": 4,
-    "STRING": True,
-    "DIGITS": True,
-    "PUNCTUATION": False,
-    "MODE": 1,
-    "USERNAME_LENGTH": 4,
-    "GENERATE_COUNT": 15,
-    "USERNAME_LIST": [
-        "testuser",
-        "example123"
-    ]
-}
+CHARS = string.ascii_lowercase + string.digits + "_" + "."
 
-# =========================
-# GLOBALS
-# =========================
-available_usernames = []
-integ_0 = 0
-sample_0 = "_."
+# load proxies (optional)
+try:
+    with open("proxies.txt", "r") as f:
+        proxies = [p.strip() for p in f if p.strip()]
+except:
+    proxies = []
 
-sys_url = "https://discord.com/api/v9/users/@me"
-URL = "https://discord.com/api/v9/users/@me/pomelo-attempt"
+proxy_cycle = itertools.cycle(proxies) if proxies else None
+use_proxies = False
 
-# =========================
-# TOKEN HANDLING
-# =========================
-def avail_tokens():
-    return CONFIG["TOKENS"]
+request_lock = threading.Lock()
+q = queue.Queue()
 
 
-def s_sys_h():
-    global integ_0
+def log(msg):
+    """
+    Flush instantly so GitHub Actions shows logs live
+    """
+    print(msg, flush=True)
+    sys.stdout.flush()
 
-    if CONFIG["MULTI_TOKEN"]:
-        tokens = avail_tokens()
-        token = tokens[integ_0]
-    else:
-        token = CONFIG["TOKEN"]
 
-    return {
-        "Content-Type": "application/json",
-        "Origin": "https://discord.com/",
-        "Authorization": token
-    }
+# generate 3 and 4 character usernames
+def generate_names():
+    for length in [3, 4]:
+        for combo in itertools.product(CHARS, repeat=length):
+            yield ''.join(combo)
 
-def sys_c_t():
-    if CONFIG["MULTI_TOKEN"]:
-        if len(avail_tokens()) == 0:
-            print("[ERROR] MULTI_TOKEN is enabled but no tokens were supplied.")
-            sys.exit(1)
-    else:
-        if CONFIG["TOKEN"] == "PUT_YOUR_DISCORD_TOKEN_HERE" or not CONFIG["TOKEN"]:
-            print("[ERROR] No Discord token configured.")
-            sys.exit(1)
 
-# =========================
-# CONFIG SETUP
-# =========================
-def setconf():
-    global string_0
-    global digits_0
-    global punctuation_0
-    global webhook_0
+for name in generate_names():
+    q.put(name)
 
-    sat_string = CONFIG["STRING"]
-    sat_digits = CONFIG["DIGITS"]
-    sat_punct = CONFIG["PUNCTUATION"]
+log(f"[INIT] Loaded {q.qsize()} usernames")
+log(f"[INIT] Loaded {len(proxies)} proxies")
 
-    webhook_0 = CONFIG["WEBHOOK_URL"] != ""
 
-    string_0 = string.ascii_lowercase if sat_string else ""
-    digits_0 = string.digits if sat_digits else ""
-    punctuation_0 = sample_0 if sat_punct else ""
-
-    if not string_0 and not digits_0 and not punctuation_0:
-        string_0 = string.ascii_lowercase
-
-# =========================
-# MAIN
-# =========================
-def main():
-    print("=" * 80)
-    print(__version__)
-    print(__github__)
-    print("=" * 80)
-
-    sys_c_t()
-    setconf()
-
-    try:
-        user = requests.get(sys_url, headers=s_sys_h()).json()
-        print(f"[INFO] Connected as: {user.get('username')}#{user.get('discriminator')}")
-    except Exception as e:
-        print(f"[ERROR] Failed to fetch account info: {e}")
-
-    print(f"[INFO] Delay: {CONFIG['DEFAULT_DELAY']}s")
-    print(f"[INFO] String chars: {CONFIG['STRING']}")
-    print(f"[INFO] Digits: {CONFIG['DIGITS']}")
-    print(f"[INFO] Punctuation: {CONFIG['PUNCTUATION']}")
-    print(f"[INFO] Multi-token: {CONFIG['MULTI_TOKEN']}")
-
-    if CONFIG["MODE"] == 1:
-        opt1func(CONFIG["GENERATE_COUNT"], CONFIG["USERNAME_LENGTH"])
-    elif CONFIG["MODE"] == 2:
-        validate_names(2, CONFIG["USERNAME_LIST"])
-
-# =========================
-# VALIDATION
-# =========================
-def validate_names(opt, usernames):
-    global available_usernames
-    global integ_0
-
-    if opt == 2:
-        for username in usernames:
-            validate_single(username)
-
-    elif opt == 1:
-        validate_single(usernames)
-
-# =========================
-# SINGLE VALIDATION
-# =========================
-def validate_single(username):
-    global integ_0
-
-    body = {
-        "username": username
-    }
-
-    time.sleep(CONFIG["DEFAULT_DELAY"])
-
-    print(f"[CHECKING] {username}")
-
-    try:
-        endpoint = requests.post(URL, headers=s_sys_h(), json=body)
-        json_endpoint = endpoint.json()
-
-        print(f"[DEBUG] Status Code: {endpoint.status_code}")
-        print(f"[DEBUG] Response: {json.dumps(json_endpoint)}")
-
-        if endpoint.status_code == 429:
-            if CONFIG["MULTI_TOKEN"] and len(avail_tokens()) > 1:
-                integ_0 = (integ_0 + 1) % len(avail_tokens())
-                print(f"[RATE LIMIT] Switched token index to {integ_0}")
-                return
-            else:
-                sleep_time = json_endpoint.get("retry_after", 5)
-                print(f"[RATE LIMIT] Sleeping for {sleep_time} seconds")
-                time.sleep(sleep_time)
-                return
-
-        if json_endpoint.get("taken") is False:
-            print(f"[AVAILABLE] {username}")
-            available_usernames.append(username)
-            save(username)
-            ch_send_webhook(username)
-
-        elif json_endpoint.get("taken") is True:
-            print(f"[TAKEN] {username}")
-
-        else:
-            print(f"[ERROR] Unexpected response: {json.dumps(json_endpoint)}")
-
-    except Exception as e:
-        print(f"[EXCEPTION] {e}")
-
-# =========================
-# SAVE RESULTS
-# =========================
-def save(content):
-    with open("available_usernames.txt", "a", encoding="utf-8") as file:
-        file.write(f"{content}\n")
-
-    print(f"[SAVED] {content} -> available_usernames.txt")
-
-# =========================
-# WEBHOOK
-# =========================
-def ch_send_webhook(val0: str):
-    if not webhook_0:
+def send_webhook(name):
+    if not WEBHOOK:
         return
 
-    webhook = Discord(url=CONFIG["WEBHOOK_URL"])
-
     try:
-        webhook.post(
-            username="DSV",
-            embeds=[
-                {
-                    "title": f"Username: `{val0}` is available.",
-                    "timestamp": str(datetime.datetime.utcnow()),
-                    "color": 16768000
-                }
-            ]
+        requests.post(
+            WEBHOOK,
+            json={
+                "content": f"🔥 AVAILABLE: `{name}`"
+            },
+            timeout=5
         )
 
-        print(f"[WEBHOOK] Sent notification for {val0}")
+        log(f"[WEBHOOK] Sent hit for {name}")
 
     except Exception as e:
-        print(f"[WEBHOOK ERROR] {e}")
+        log(f"[WEBHOOK ERROR] {e}")
 
-# =========================
-# GENERATION
-# =========================
-def opt1func(v1, v2):
-    print(f"[INFO] Generating {v1} usernames with length {v2}")
 
-    for i in range(v1):
-        name = get_names(v2)
-        print(f"[GENERATED] {name}")
-        validate_names(1, name)
+def get_proxy():
+    if not use_proxies or not proxy_cycle:
+        return None
 
-    print("=" * 80)
-    print(f"[DONE] Found {len(available_usernames)} available usernames")
-    print("=" * 80)
+    proxy = next(proxy_cycle)
 
-# =========================
-# RANDOM NAME
-# =========================
-def get_names(length: int) -> str:
-    chars = string_0 + digits_0 + punctuation_0
-    return ''.join(random.sample(chars, length))
+    log(f"[PROXY] Using {proxy}")
 
-# =========================
-# DISCORD WEBHOOK CLASS
-# =========================
-class Discord:
-    def __init__(self, *, url):
-        self.url = url
+    return {
+        "http": f"http://{proxy}",
+        "https": f"http://{proxy}"
+    }
 
-    def post(
-        self,
-        *,
-        content=None,
-        username=None,
-        avatar_url=None,
-        tts=False,
-        file=None,
-        embeds=None,
-        allowed_mentions=None
-    ):
-        if content is None and file is None and embeds is None:
-            raise ValueError("required one of content, file, embeds")
 
-        data = {}
+def check(name):
+    global use_proxies
 
-        if content is not None:
-            data["content"] = content
+    retries = 0
 
-        if username is not None:
-            data["username"] = username
+    while retries < MAX_RETRIES:
+        time.sleep(COOLDOWN)
 
-        if avatar_url is not None:
-            data["avatar_url"] = avatar_url
+        try:
+            log(f"[CHECKING] {name}")
 
-        data["tts"] = tts
-
-        if embeds is not None:
-            data["embeds"] = embeds
-
-        if allowed_mentions is not None:
-            data["allowed_mentions"] = allowed_mentions
-
-        if file is not None:
-            return requests.post(
-                self.url,
-                {"payload_json": json.dumps(data)},
-                files=file
-            )
-        else:
-            return requests.post(
-                self.url,
-                json.dumps(data),
-                headers={"Content-Type": "application/json"}
+            r = requests.post(
+                API,
+                json={"username": name},
+                proxies=get_proxy(),
+                timeout=10
             )
 
+            log(f"[RESPONSE] {name} -> {r.status_code}")
 
-if __name__ == "__main__":
-    main()
+            if r.status_code == 200:
+                data = r.json()
+
+                if data.get("taken", True):
+                    log(f"[TAKEN] {name}")
+                else:
+                    log(f"[OPEN] {name}")
+
+                    with open("hits.txt", "a") as f:
+                        f.write(name + "\n")
+
+                    log(f"[SAVED] {name} -> hits.txt")
+
+                    send_webhook(name)
+
+                return
+
+            elif r.status_code == 429:
+                with request_lock:
+                    log("[RATE LIMITED] Enabling proxies")
+                    use_proxies = True
+
+                retries += 1
+
+                log(f"[RETRY] {name} ({retries}/{MAX_RETRIES})")
+
+                time.sleep(2)
+
+            else:
+                log(f"[ERROR] {name} -> HTTP {r.status_code}")
+                return
+
+        except Exception as e:
+            log(f"[REQUEST ERROR] {name} -> {e}")
+
+            retries += 1
+
+            log(f"[RETRY] {name} ({retries}/{MAX_RETRIES})")
+
+            time.sleep(2)
+
+    log(f"[GAVE UP] {name}")
+
+
+def worker():
+    while True:
+        try:
+            name = q.get_nowait()
+        except queue.Empty:
+            log("[THREAD] Queue empty, exiting")
+            return
+
+        check(name)
+
+        q.task_done()
+
+        log(f"[PROGRESS] Remaining: {q.qsize()}")
+
+
+# start threads
+threads = []
+
+log(f"[START] Launching {THREADS} thread(s)")
+
+for i in range(THREADS):
+    t = threading.Thread(target=worker, name=f"worker-{i}")
+    t.start()
+
+    log(f"[THREAD STARTED] worker-{i}")
+
+    threads.append(t)
+
+for t in threads:
+    t.join()
+
+log("[DONE] Finished checking usernames")
